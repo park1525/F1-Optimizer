@@ -1,0 +1,882 @@
+<!doctype html>
+<html>
+  <head>
+    <title>F1 Fantasy Optimizer</title>
+    <meta charset="UTF-8" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* F1 공식 앱이랑 똑같은 폰트예요 */
+      * {
+        font-family: "Titillium Web", sans-serif;
+        box-sizing: border-box;
+      }
+
+      /* 색상 변수 — 한 곳에서 관리 */
+      :root {
+        --red: #e8002d;
+        --bg: #1a1a2e; /* 완전 검정 → 짙은 네이비로 */
+        --bg2: #252540; /* 카드 배경 */
+        --bg3: #2e2e50; /* 테이블 헤더 */
+        --border: #3a3a5c; /* 테두리 */
+        --text: #f0f0ff; /* 텍스트 */
+        --dimtext: #9999bb; /* 흐린 텍스트 */
+        --gold: #ffd700;
+        --green: #00ff88;
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        padding: 40px;
+        max-width: 1100px;
+        margin: 0 auto; /* 가운데 정렬 */
+      }
+
+      h1 {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--red);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text);
+        margin-top: 36px;
+        margin-bottom: 12px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 20% 100% at 0% 50%,
+            rgba(232, 0, 45, 0.12) 0%,
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 20% 100% at 100% 50%,
+            rgba(232, 0, 45, 0.12) 0%,
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 80% 40% at 50% 0%,
+            rgba(232, 0, 45, 0.06) 0%,
+            transparent 60%
+          );
+        pointer-events: none;
+        z-index: 0;
+        animation: sidePulse 6s ease-in-out infinite alternate;
+      }
+
+      @keyframes sidePulse {
+        from {
+          opacity: 0.7;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 80px,
+            rgba(255, 255, 255, 0.015) 80px,
+            rgba(255, 255, 255, 0.015) 81px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 80px,
+            rgba(255, 255, 255, 0.015) 80px,
+            rgba(255, 255, 255, 0.015) 81px
+          );
+        animation: gridMove 8s linear infinite;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      @keyframes gridMove {
+        from {
+          transform: translate(0, 0);
+        }
+        to {
+          transform: translate(80px, 80px);
+        }
+      }
+
+      body {
+        background-color: #0a0a0f;
+        color: #e8e8f0;
+        font-family: Arial, sans-serif;
+        padding: 40px;
+      }
+      h1 {
+        color: #e8002d;
+        font-family: "Russo One", sans-serif; /* 또는 '' */
+        font-size: 36px;
+      }
+      h2 {
+        color: #e8e8f0;
+        margin-top: 30px;
+      }
+      p {
+        color: #8888aa;
+        font-size: 16px;
+      }
+
+      #dropZone {
+        border-radius: 16px;
+      }
+
+      table {
+        border-collapse: collapse;
+        margin-top: 10px;
+        border-radius: 12px;
+        overflow: hidden; /* 모서리 밖으로 삐져나오는 거 방지 */
+      }
+      th,
+      td {
+        border: 1px solid #2a2a3e;
+        padding: 8px 12px;
+        text-align: left;
+      }
+      th {
+        background-color: #16162a;
+        color: #8888aa;
+      }
+      .fastest {
+        background: rgba(155, 0, 255, 0.3);
+        color: #cc80ff;
+        border-radius: 6px;
+        font-weight: 600;
+      }
+      input {
+        background: transparent;
+        border: none;
+        color: #e8e8f0;
+        font-size: 14px;
+        width: 100%;
+        border-radius: 2px;
+      }
+
+      button {
+        margin-top: 30px;
+        padding: 12px 30px;
+        background: #e8002d;
+        color: white;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+      }
+      button:hover {
+        background: #ff1a3d;
+      }
+
+      /* 결과 영역 */
+      #result {
+        margin-top: 40px;
+        padding: 24px;
+        background: #16162a;
+        border: 1px solid #2a2a3e;
+        display: none;
+        border-radius: 25px;
+      }
+      #result h2 {
+        color: #ffd700;
+        margin-top: 0;
+        font-size: 26px;
+        padding-left: 16px;
+      }
+      .result-row {
+        display: flex;
+        gap: 40px;
+        margin-top: 16px;
+      }
+      .result-box {
+        flex: 1;
+        background: #0a0a0f;
+        border: 1px solid #2a2a3e;
+        padding: 16px;
+        border-radius: 16px;
+      }
+      .result-box h3 {
+        color: #e8002d;
+        margin-top: 0;
+        font-size: 20px;
+      }
+      .result-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid #2a2a3e;
+        font-size: 18px;
+      }
+      .result-item:last-child {
+        border-bottom: none;
+      }
+      .result-item .price {
+        color: #ffd700;
+        font-size: 18px;
+      }
+      .result-item .score {
+        color: #00ff88;
+      }
+      .result-summary {
+        margin-top: 20px;
+        display: flex;
+        gap: 20px;
+      }
+      .summary-card {
+        flex: 1;
+        background: #0a0a0f;
+        border: 1px solid #2a2a3e;
+        padding: 14px;
+        text-align: center;
+        border-radius: 16px;
+      }
+      .summary-card .value {
+        font-size: 36px;
+        font-weight: bold;
+        color: #ffd700;
+      }
+      .summary-card .label {
+        font-size: 14px;
+        color: #8888aa;
+        margin-top: 4px;
+      }
+      body > * {
+        position: relative;
+        z-index: 2;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      style="
+        text-align: center;
+        padding: 40px 0 30px;
+        border-bottom: 2px solid var(--red);
+        margin-bottom: 40px;
+      "
+    >
+      <!-- F1 로고 SVG -->
+      <img src="f1-logo.png" height="50" style="margin-bottom: 12px" />
+
+      <h1
+        style="
+          font-size: clamp(24px, 5vw, 48px);
+          margin: 0;
+          letter-spacing: 1.5px;
+          color: white;
+        "
+      >
+        FANTASY <span style="color: var(--red)">TEAM MANAGING</span>
+      </h1>
+
+      <p
+        style="
+          color: var(--dimtext);
+          font-size: 13px;
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          margin-top: 8px;
+        "
+      >
+        Practice Performance · Budget Optimizer
+      </p>
+    </div>
+
+    <h2>
+      Upload Data File
+      <span
+        id="helpIcon"
+        style="
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          background: #2a2a3e;
+          color: #8888aa;
+          border-radius: 50%;
+          text-align: center;
+          line-height: 20px;
+          font-size: 13px;
+          cursor: pointer;
+          position: relative;
+        "
+        onmouseenter="
+          document.getElementById('helpTooltip').style.display = 'block'
+        "
+        onmouseleave="
+          document.getElementById('helpTooltip').style.display = 'none'
+        "
+        >?
+
+        <div
+          id="helpTooltip"
+          style="
+            display: none;
+            position: absolute;
+            top: 28px;
+            left: 0;
+            background: #16162a;
+            border: 1px solid #2a2a3e;
+            padding: 16px;
+            width: 320px;
+            font-size: 13px;
+            color: #e8e8f0;
+            line-height: 1.8;
+            z-index: 999;
+            font-weight: normal;
+            text-align: left;
+          "
+        >
+          <strong style="color: #e8002d">📋 Required Excel Format</strong
+          ><br /><br />
+
+          <strong style="color: #ffd700">Sheet 1 — Base</strong><br />
+          Name, Team<br /><br />
+
+          <strong style="color: #ffd700">Sheet 2 — Team Price</strong><br />
+          Team, Price<br /><br />
+
+          <strong style="color: #ffd700"
+            >Sheet 3+ — Grand Prix (e.g. Australia)</strong
+          ><br />
+          Name, Price, P1, P2, P3<br /><br />
+
+          <span style="color: #8888aa">
+            • Lap time format: <strong style="color: #e8e8f0">1:23.456</strong
+            ><br />
+            • Leave blank if driver did not participate<br />
+            • Add a new sheet for each Grand Prix<br />
+            • The last sheet is always used for optimization
+          </span>
+        </div>
+      </span>
+    </h2>
+    <div
+      id="dropZone"
+      onclick="document.getElementById('excelFile').click()"
+      ondragover="
+        event.preventDefault();
+        this.style.borderColor = '#E8002D';
+        this.style.background = '#1A0A0F';
+      "
+      ondragleave="
+        this.style.borderColor = '#2A2A3E';
+        this.style.background = '#16162A';
+      "
+      ondrop="handleDrop(event)"
+      style="
+        border: 2px dashed #2a2a3e;
+        background: #16162a;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        margin-bottom: 20px;
+        transition: all 0.2s;
+      "
+    >
+      <div style="font-size: 40px; margin-bottom: 10px">📂</div>
+      <div style="font-size: 18px; color: #e8e8f0">
+        Drag and drop an Excel file here, or click to upload
+      </div>
+      <div style="font-size: 13px; color: #8888aa; margin-top: 8px">
+        Supports .xlsx / .xls
+      </div>
+      <input
+        type="file"
+        id="excelFile"
+        accept=".xlsx,.xls"
+        onchange="loadExcel(this)"
+        style="display: none"
+      />
+    </div>
+
+    <h2>Cost Cap</h2>
+    <p>
+      Budget:
+      <input
+        type="number"
+        id="budget"
+        value="100"
+        style="width: 80px; border-bottom: 1px solid #8888aa"
+      />
+      M$
+    </p>
+
+    <h2>🏎️ Drivers</h2>
+    <table id="driverTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Constructor</th>
+          <th>Value (M$)</th>
+          <th>P1</th>
+          <th>P2</th>
+          <th>P3</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>🏁 Constructors</h2>
+    <table id="teamTable">
+      <thead>
+        <tr>
+          <th>Constructor</th>
+          <th>Value (M$)</th>
+          <th>Driver 1</th>
+          <th>Driver 2</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <br />
+    <button onclick="optimize()">
+      ⚡
+      <span>Optimize </span>
+    </button>
+
+    <!-- 결과 영역 -->
+    <div id="result">
+      <h2>🏆 Optimal Team</h2>
+      <div class="result-row">
+        <div class="result-box">
+          <h3>🏎️ Drivers (5)</h3>
+          <div id="resultDrivers"></div>
+        </div>
+        <div class="result-box">
+          <h3>🏁 Constructors (2)</h3>
+          <div id="resultTeams"></div>
+        </div>
+      </div>
+      <div class="result-summary">
+        <div class="summary-card">
+          <div class="value" id="summaryCost">-</div>
+          <div class="label">Total Cost</div>
+        </div>
+        <div class="summary-card">
+          <div class="value" id="summaryLeft">-</div>
+          <div class="label">Remaining Budget</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function handleDrop(event) {
+        event.preventDefault();
+
+        // 드래그존 원래 스타일로
+        var zone = document.getElementById("dropZone");
+        zone.style.borderColor = "#2A2A3E";
+        zone.style.background = "#16162A";
+
+        // 파일 꺼내서 loadExcel에 넘기기
+        var file = event.dataTransfer.files[0];
+        if (!file) return;
+
+        // loadExcel은 input.files[0]을 받으니까 가짜 input 객체 만들어줌
+        loadExcel({ files: [file] });
+      }
+
+      // ── 엑셀 로드 ──
+      function loadExcel(input) {
+        var file = input.files[0];
+        if (!file) return;
+
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var workbook = XLSX.read(e.target.result, { type: "binary" });
+
+          // Sheet1: Name, Team
+          var sheet1 = workbook.Sheets[workbook.SheetNames[0]];
+          var baseData = XLSX.utils.sheet_to_json(sheet1);
+
+          // Sheet2: Team, Price
+          var sheet2 = workbook.Sheets[workbook.SheetNames[1]];
+          var teamPriceData = XLSX.utils.sheet_to_json(sheet2);
+
+          // 마지막 Sheet: Name, Price, P1, P2, P3
+          var lastSheetName =
+            workbook.SheetNames[workbook.SheetNames.length - 1];
+          var lastSheet = workbook.Sheets[lastSheetName];
+          var raceData = XLSX.utils.sheet_to_json(lastSheet);
+
+          // 드라이버 합치기 (영어 헤더 기준)
+          var drivers = raceData
+            .filter(function (race) {
+              return race["Name"];
+            })
+            .map(function (race) {
+              var base = baseData.find((b) => b["Name"] === race["Name"]);
+              return {
+                name: race["Name"],
+                team: base ? base["Team"] : "Unknown",
+                price: parseFloat(race["Price"]) || 0,
+                p1: lapToSeconds(race["P1"]),
+                p2: lapToSeconds(race["P2"]),
+                p3: lapToSeconds(race["P3"]),
+              };
+            });
+
+          // 팀 합치기
+          var teams = teamPriceData
+            .filter(function (t) {
+              return t["Team"];
+            })
+            .map(function (t) {
+              var teamDrivers = baseData.filter((b) => b["Team"] === t["Team"]);
+              return {
+                name: t["Team"],
+                price: parseFloat(t["Price"]) || 0,
+                driver1: teamDrivers[0] ? teamDrivers[0]["Name"] : "",
+                driver2: teamDrivers[1] ? teamDrivers[1]["Name"] : "",
+              };
+            });
+
+          // 테이블에 뿌리기
+          assignScores(drivers);
+          renderDriverTable(drivers);
+          renderTeamTable(teams);
+
+          alert(
+            "✅ " +
+              lastSheetName +
+              " Loaded!\nDrivers: " +
+              drivers.length +
+              " / Constructors: " +
+              teams.length,
+          );
+        };
+        reader.readAsBinaryString(file);
+      }
+
+      // ── 테이블 렌더링 ──
+      function renderDriverTable(drivers) {
+        drivers.sort((a, b) => calcScore(b) - calcScore(a));
+
+        // 각 세션별 가장 빠른 랩타임 찾기
+        var fastest = {
+          p1: Math.min(...drivers.filter((d) => d.p1 < 9999).map((d) => d.p1)),
+          p2: Math.min(...drivers.filter((d) => d.p2 < 9999).map((d) => d.p2)),
+          p3: Math.min(...drivers.filter((d) => d.p3 < 9999).map((d) => d.p3)),
+        };
+
+        var tbody = document.querySelector("#driverTable tbody");
+        tbody.innerHTML = "";
+        drivers.forEach(function (d) {
+          var p1Class = d.p1 === fastest.p1 ? 'class="fastest"' : "";
+          var p2Class = d.p2 === fastest.p2 ? 'class="fastest"' : "";
+          var p3Class = d.p3 === fastest.p3 ? 'class="fastest"' : "";
+
+          var tr = document.createElement("tr");
+          tr.innerHTML =
+            '<td><input type="text"   value="' +
+            d.name +
+            '"></td>' +
+            '<td><input type="text"   value="' +
+            d.team +
+            '"></td>' +
+            '<td><input type="number" value="' +
+            d.price +
+            '"></td>' +
+            "<td " +
+            p1Class +
+            '><input type="text" value="' +
+            (d.p1 < 9999 ? secondsToLap(d.p1) : "") +
+            '"></td>' +
+            "<td " +
+            p2Class +
+            '><input type="text" value="' +
+            (d.p2 < 9999 ? secondsToLap(d.p2) : "") +
+            '"></td>' +
+            "<td " +
+            p3Class +
+            '><input type="text" value="' +
+            (d.p3 < 9999 ? secondsToLap(d.p3) : "") +
+            '"></td>';
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderTeamTable(teams) {
+        var tbody = document.querySelector("#teamTable tbody");
+        tbody.innerHTML = "";
+        teams.forEach(function (t) {
+          var tr = document.createElement("tr");
+          tr.innerHTML =
+            '<td><input type="text"   value="' +
+            t.name +
+            '"></td>' +
+            '<td><input type="number" value="' +
+            t.price +
+            '"></td>' +
+            '<td><input type="text"   value="' +
+            t.driver1 +
+            '"></td>' +
+            '<td><input type="text"   value="' +
+            t.driver2 +
+            '"></td>';
+          tbody.appendChild(tr);
+        });
+      }
+
+      // ── 랩타임 변환 ──
+      function lapToSeconds(val) {
+        if (val === null || val === undefined || val === "" || val === 0)
+          return 9999;
+        var str = String(val).trim();
+        if (str === "" || str === "0") return 9999;
+        if (!str.includes(":")) return 9999;
+        var parts = str.split(":");
+        var minutes = parseFloat(parts[0]);
+        var seconds = parseFloat(parts[1]);
+        if (isNaN(minutes) || isNaN(seconds)) return 9999;
+        return minutes * 60 + seconds;
+      }
+
+      function secondsToLap(sec) {
+        if (sec >= 9999) return "";
+        var m = Math.floor(sec / 60);
+        var s = (sec - m * 60).toFixed(3);
+        return m + ":" + (s < 10 ? "0" : "") + s;
+      }
+
+      // ── 테이블에서 데이터 읽기 ──
+      function getDrivers() {
+        var rows = document.getElementById("driverTable").rows;
+        var drivers = [];
+        for (var i = 1; i < rows.length; i++) {
+          var c = rows[i].cells;
+          drivers.push({
+            name: c[0].querySelector("input").value,
+            team: c[1].querySelector("input").value,
+            price: parseFloat(c[2].querySelector("input").value) || 0,
+            p1: lapToSeconds(c[3].querySelector("input").value),
+            p2: lapToSeconds(c[4].querySelector("input").value),
+            p3: lapToSeconds(c[5].querySelector("input").value),
+          });
+        }
+        return drivers;
+      }
+
+      function getTeams() {
+        var rows = document.getElementById("teamTable").rows;
+        var teams = [];
+        for (var i = 1; i < rows.length; i++) {
+          var c = rows[i].cells;
+          teams.push({
+            name: c[0].querySelector("input").value,
+            price: parseFloat(c[1].querySelector("input").value) || 0,
+            driver1: c[2].querySelector("input").value,
+            driver2: c[3].querySelector("input").value,
+          });
+        }
+        return teams;
+      }
+
+      // ── 점수 계산 ──
+      var SCORE_TABLE = {
+        1: 100,
+        2: 98,
+        3: 96,
+        4: 94,
+        5: 92,
+        6: 90,
+        7: 88,
+        8: 86,
+        9: 84,
+        10: 82,
+        11: 79,
+        12: 76,
+        13: 73,
+        14: 70,
+        15: 67,
+        16: 64,
+        17: 60,
+        18: 56,
+        19: 52,
+        20: 48,
+        21: 44,
+        22: 40,
+      };
+
+      function assignScores(drivers) {
+        ["p1", "p2", "p3"].forEach(function (s) {
+          var participated = drivers.filter((d) => d[s] < 9999);
+          participated.sort((a, b) => a[s] - b[s]);
+          participated.forEach(function (d, i) {
+            d[s + "_score"] = SCORE_TABLE[i + 1] || 50;
+          });
+          drivers
+            .filter((d) => d[s] >= 9999)
+            .forEach(function (d) {
+              d[s + "_score"] = 0;
+            });
+        });
+      }
+
+      function calcScore(driver) {
+        var scores = [driver.p1_score, driver.p2_score, driver.p3_score].filter(
+          (s) => s > 0,
+        );
+        if (scores.length === 0) return 0;
+        return scores.reduce((a, b) => a + b) / scores.length;
+      }
+
+      // ── 조합 ──
+      function combinations(arr, k) {
+        if (k === 0) return [[]];
+        if (arr.length === 0) return [];
+        var first = arr[0],
+          rest = arr.slice(1);
+        var with_ = combinations(rest, k - 1).map((c) => [first, ...c]);
+        var without_ = combinations(rest, k);
+        return with_.concat(without_);
+      }
+
+      // ── 최적화 ──
+      function optimize() {
+        var budget = parseFloat(document.getElementById("budget").value);
+        var drivers = getDrivers();
+        var teams = getTeams();
+
+        if (drivers.length < 5) {
+          alert("Upload your driver data!");
+          return;
+        }
+        if (teams.length < 2) {
+          alert("Upload your constructor data!");
+          return;
+        }
+
+        assignScores(drivers);
+
+        var driverCombos = combinations(drivers, 5);
+        var teamCombos = combinations(teams, 2);
+
+        var bestScore = -1;
+        var bestDrivers = null;
+        var bestTeams = null;
+
+        for (var i = 0; i < teamCombos.length; i++) {
+          var tCombo = teamCombos[i];
+          var teamCost = tCombo.reduce((s, t) => s + t.price, 0);
+
+          var tScore = tCombo.reduce((s, t) => {
+            var d1 = drivers.find((d) => d.name === t.driver1);
+            var d2 = drivers.find((d) => d.name === t.driver2);
+            return s + (d1 ? calcScore(d1) : 0) + (d2 ? calcScore(d2) : 0);
+          }, 0);
+
+          for (var j = 0; j < driverCombos.length; j++) {
+            var dCombo = driverCombos[j];
+            var driverCost = dCombo.reduce((s, d) => s + d.price, 0);
+
+            if (teamCost + driverCost > budget) continue;
+
+            var dScore = dCombo.reduce((s, d) => s + calcScore(d), 0);
+            var total = dScore + tScore;
+
+            if (total > bestScore) {
+              bestScore = total;
+              bestDrivers = dCombo;
+              bestTeams = tCombo;
+            }
+          }
+        }
+
+        if (bestDrivers === null) {
+          alert(
+            "No available combinations! \n Increase cost cap / Check your data.",
+          );
+          return;
+        }
+
+        showResult(bestDrivers, bestTeams, bestScore, budget, drivers);
+      }
+
+      // ── 결과 표시 ──
+      function showResult(bestDrivers, bestTeams, bestScore, budget, drivers) {
+        var totalCost =
+          bestDrivers.reduce((s, d) => s + d.price, 0) +
+          bestTeams.reduce((s, t) => s + t.price, 0);
+
+        // 드라이버 목록
+        var dHtml = "";
+        bestDrivers.forEach(function (d) {
+          dHtml +=
+            '<div class="result-item">' +
+            "<span>" +
+            d.name +
+            ' <span style="color:#8888AA;font-size:12px">(' +
+            d.team +
+            ")</span></span>" +
+            '<span class="price">$' +
+            d.price.toFixed(1) +
+            "M</span>" +
+            "</div>"; // ← score span 삭제
+        });
+        document.getElementById("resultDrivers").innerHTML = dHtml;
+
+        // 팀 목록
+        var tHtml = "";
+        bestTeams.forEach(function (t) {
+          tHtml +=
+            '<div class="result-item">' +
+            "<span>" +
+            t.name +
+            "</span>" +
+            '<span class="price">$' +
+            t.price.toFixed(1) +
+            "M</span>" +
+            "</div>"; // ← tScore 계산이랑 score span 둘 다 삭제
+        });
+        document.getElementById("resultTeams").innerHTML = tHtml; // ← 이 줄 추가!
+
+        // 요약
+        document.getElementById("summaryCost").textContent =
+          "$" + totalCost.toFixed(1) + "M";
+        document.getElementById("summaryLeft").textContent =
+          "$" + (budget - totalCost).toFixed(1) + "M";
+
+        // 결과창 보이기
+        var resultDiv = document.getElementById("result");
+        resultDiv.style.display = "block";
+        resultDiv.scrollIntoView({ behavior: "smooth" });
+      }
+    </script>
+  </body>
+</html>
