@@ -3,6 +3,7 @@
   <head>
     <title>F1 Fantasy Optimizer</title>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&display=swap"
@@ -277,6 +278,65 @@
       body > * {
         position: relative;
         z-index: 2;
+      }
+      `<head>` 안에 이게 있는지 확인해보세요:
+
+      ```html
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      ```
+
+      없으면 추가하고, 그 다음 `<style>` 안에 이걸 추가하세요:
+
+      ```css
+      /* 폰에서 볼 때 */
+      @media (max-width: 600px) {
+        body {
+          padding: 16px; /* 여백 줄이기 */
+        }
+
+        h1 {
+          font-size: 24px; /* 제목 작게 */
+          letter-spacing: 1px;
+        }
+
+        /* 헤더 패딩 줄이기 */
+        div[style*="padding: 40px 0 30px"] {
+          padding: 20px 0 16px !important;
+        }
+
+        /* F1 로고 작게 */
+        img[src="f1-logo.png"] {
+          height: 32px !important;
+        }
+
+        /* 드롭존 작게 */
+        #dropZone {
+          padding: 20px !important;
+        }
+
+        #dropZone div[style*="font-size: 40px"] {
+          font-size: 24px !important;
+        }
+
+        #dropZone div[style*="font-size: 18px"] {
+          font-size: 14px !important;
+        }
+
+        /* 결과 박스 세로로 */
+        .result-row {
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .result-summary {
+          flex-direction: column;
+        }
+
+        /* 테이블 스크롤 */
+        table {
+          display: block;
+          overflow-x: auto;
+        }
       }
     </style>
   </head>
